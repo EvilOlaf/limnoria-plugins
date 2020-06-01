@@ -1,5 +1,6 @@
 ###
 # Copyright (c) 2013, Adam Harwell
+# Copyright (c) 2020, Werner
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -39,8 +40,8 @@ import supybot.utils as utils
 import yaml
 from jira import JIRA
 from time import sleep
-from supybot.commands import wrap
-#from supybot.commands import *
+from supybot.commands import *
+from supybot import log
 
 try:
     from supybot.i18n import PluginInternationalization
@@ -65,13 +66,62 @@ class Jira(callbacks.Plugin):
     def getissue(self, irc, msg, args, text):
         """Get a Jira Issue"""
         jira = JIRA(self.server)
-        issue = jira.issue(text)
+        try:
+            issue = jira.issue(text)
+        except:
+            replytext = ("Either invalid or unknown issue.")
+            irc.reply(replytext, prefixNick=False)
+            return
         recentDate = issue.fields.created
         splitdate = recentDate.split('T')
         replytext = ("{0}: {1}, reported by {2} at {3}. Status: {4}.".format(
             issue.key, issue.fields.summary, issue.fields.creator, splitdate[0], issue.fields.status))
         irc.reply(replytext, prefixNick=False)
     getissue = wrap(getissue, ['text'])
+
+    def recent(self, irc, msg, args):
+        """Fetch the most recent issue"""
+        jira = JIRA(self.server)
+        for issue in jira.search_issues('project=Armbian order by created',  maxResults=1):
+            recentDate = issue.fields.created
+            splitdate = recentDate.split('T')
+            replytext = ("{0}: {1}, reported by {2} at {3}. Status: {4}.".format(
+                issue.key, issue.fields.summary, issue.fields.creator, splitdate[0], issue.fields.status))
+            irc.reply(replytext, prefixNick=False)
+        log.debug("test")
+    recent = wrap(recent)
+
+    def recentonly(self, irc, msg, args):
+        """Fetch the most recent issue"""
+        jira = JIRA(self.server)
+
+        script_dir = os.path.dirname(__file__)
+        rel_path = "data/tmp/issue.txt"
+        abs_file_path = os.path.join(script_dir, rel_path)
+
+        try:
+            with open(abs_file_path, "r+", encoding="utf-8") as file:
+                for line in file:
+                    lastknownissue = line
+                log.error(lastknownissue)
+        except:
+            with open(abs_file_path, "w+", encoding="utf-8") as file:
+                pass
+
+        for issue in jira.search_issues('project=Armbian order by created',  maxResults=1):
+            if issue.key != lastknownissue:
+                recentDate = issue.fields.created
+                splitdate = recentDate.split('T')
+                replytext = ("{0}: {1}, reported by {2} at {3}. Status: {4}.".format(
+                    issue.key, issue.fields.summary, issue.fields.creator, splitdate[0], issue.fields.status))
+                irc.reply(replytext, prefixNick=False)
+                with open(abs_file_path, "w+", encoding="utf-8") as file:
+                    file.write(issue.key)
+
+            else:
+                replytext = ("no new issue")
+                irc.reply(replytext, prefixNick=False)
+    recentonly = wrap(recentonly)
 
 
 '''

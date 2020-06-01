@@ -1,5 +1,6 @@
 ###
 # Copyright (c) 2013, Adam Harwell
+# Copyright (c) 2020, Werner
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without

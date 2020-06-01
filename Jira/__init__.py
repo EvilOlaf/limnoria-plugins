@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 ###
 # Copyright (c) 2013, Adam Harwell
+# Copyright (c) 2020, Werner
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -42,7 +43,13 @@ import imp
 __version__ = "0.1"
 
 # XXX Replace this with an appropriate author or supybot.Author instance.
-__author__ = supybot.Author('Werner', 'EvilOlaf', 'werner@armbian.de')
+__author__ = supybot.Author(
+    'Adam Harwell', 'rm_you', 'adam.harwell@rackspace.com')
+
+__maintainer__ = getattr(supybot.authors, "EvilOlaf",
+                         supybot.Author("Werner", "EvilOlaf",
+                                        "werner@armbian.de"),
+                         )
 
 # This is a dictionary mapping supybot.Author instances to lists of
 # contributions.
