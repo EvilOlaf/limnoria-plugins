@@ -41,8 +41,10 @@ import supybot.utils as utils
 import yaml
 from jira import JIRA
 from time import sleep
-from supybot.commands import *
+from supybot.commands import wrap
 from supybot import log
+import supybot.schedule as schedule
+import supybot.ircmsgs as ircmsgs
 
 try:
     from supybot.i18n import PluginInternationalization
@@ -63,6 +65,19 @@ class Jira(callbacks.Plugin):
         self.__parent = super(Jira, self)
         self.__parent.__init__(irc)
         self.server = self.registryValue('server')
+
+        self.checkTime = 30  # move to config
+
+        try:
+            schedule.removeEvent('recent')
+        except KeyError:
+            pass
+
+        def myEventCaller():
+            self.recentOnly(irc)
+        schedule.addPeriodicEvent(
+            myEventCaller, self.checkTime, 'recent')
+        self.irc = irc
 
     def getissue(self, irc, msg, args, text):
         """Get a Jira Issue"""
@@ -102,7 +117,8 @@ class Jira(callbacks.Plugin):
                 # .strip() to get rid of accidential added leading or trailing whitespaces in issue summary
                 irc.reply(replytext, prefixNick=False)
             except:
-                replytext = ("Either invalid or unknown issue.")
+                replytext = (
+                    "Detected regex match for Armbian issue: \x1F\x02\x034{0}\x0F\x03. Could not find it on Jira though. :-(".format(x.group(0)))
                 irc.reply(replytext, prefixNick=False)
                 return
 
@@ -120,10 +136,12 @@ class Jira(callbacks.Plugin):
             irc.reply(replytext, prefixNick=False)
     recent = wrap(recent)
 
-    def recentonly(self, irc, msg, args):
+    def recentOnly(self, irc):
         """Fetch the most recent issue"""
         jira = JIRA(self.server)
 
+        # There must be a more decent way to read the file that consist of one line only and
+        # to get rid of the file at all and keep that in memory.
         script_dir = os.path.dirname(__file__)
         rel_path = "data/tmp/issue.txt"
         abs_file_path = os.path.join(script_dir, rel_path)
@@ -132,7 +150,8 @@ class Jira(callbacks.Plugin):
             with open(abs_file_path, "r+", encoding="utf-8") as file:
                 for line in file:
                     lastknownissue = line
-                log.error(lastknownissue)
+                logmsg = "Last known issue key:" + lastknownissue
+                log.debug(logmsg)
         except:
             with open(abs_file_path, "w+", encoding="utf-8") as file:
                 pass
@@ -141,52 +160,18 @@ class Jira(callbacks.Plugin):
             if issue.key != lastknownissue:
                 recentDate = issue.fields.created
                 splitdate = recentDate.split('T')
-                replytext = ("{0}: {1}, reported by {2} at {3}. Status: {4}.".format(
-                    issue.key, issue.fields.summary, issue.fields.creator, splitdate[0], issue.fields.status))
-                irc.reply(replytext, prefixNick=False)
+                replytext = ("\x1F\x02\x034{0}\x0F\x03 \x02\x036[{1}] \x03\"{2}\" \x0Freported by \x02\x033{3}\x03\x0F at \x02{4}\x0F. Status: \x1F\x02{5}\x0F.".format(
+                    issue.key, issue.fields.issuetype, issue.fields.summary.strip(), issue.fields.creator, splitdate[0], issue.fields.status))
+                # irc.reply(replytext, prefixNick=False) # shall not be used in schedule events
+                # move channel to config
+                irc.queueMsg(ircmsgs.privmsg("#armbian-test", replytext))
                 with open(abs_file_path, "w+", encoding="utf-8") as file:
                     file.write(issue.key)
 
             else:
-                replytext = ("no new issue")
-                irc.reply(replytext, prefixNick=False)
-    recentonly = wrap(recentonly)
+                log.info(
+                    "Recurring new issue search successful. No new issue found.")
 
-
-'''
-    def issues(self, irc, msg, args, search_text):
-        """<search_text>
-
-        Searches Jira issue summaries for <search_text>.
-        """
-        replies = []
-        issues = self.jira[self.user].search_issues(
-            "summary ~ '{0}'".format(search_text))
-        for issue in issues:
-            try:
-                assignee = issue.fields.assignee.displayName
-            except:
-                assignee = "Unassigned"
-
-            displayTime = display_time(issue.fields.timeestimate)
-            url = ''.join((self.server, 'browse/', issue.key))
-
-            values = {"type": issue.fields.issuetype.name,
-                      "key": issue.key,
-                      "summary": issue.fields.summary,
-                      "status": _c(_b(issue.fields.status.name), "green"),
-                      "assignee": _c(assignee, "blue"),
-                      "displayTime": displayTime,
-                      "url": '',
-                      }
-            replies.append(self.template % values)
-        if replies:
-            irc.reply('|| '.join(replies), prefixNick=False)
-        else:
-            irc.reply("No issues found matching '{0}'.".format(search_text))
-        return
-    issues = wrap(issues, ['text'])
-'''
 
 Class = Jira
 
