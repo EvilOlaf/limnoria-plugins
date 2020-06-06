@@ -122,9 +122,6 @@ class Jira(callbacks.Plugin):
                 irc.reply(replytext, prefixNick=False)
                 return
 
-        else:
-            log.error("nix erkannt")
-
     def recent(self, irc, msg, args):
         """Fetch the most recent issue"""
         jira = JIRA(self.server)
@@ -154,7 +151,8 @@ class Jira(callbacks.Plugin):
                 log.debug(logmsg)
         except:
             with open(abs_file_path, "w+", encoding="utf-8") as file:
-                pass
+                lastknownissue = ""
+                log.debug("Created empty issue temp file.")
 
         for issue in jira.search_issues('project=Armbian order by created',  maxResults=1):
             if issue.key != lastknownissue:
