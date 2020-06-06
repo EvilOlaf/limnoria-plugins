@@ -31,6 +31,7 @@
 
 import os
 import re
+from time import sleep
 
 import supybot.callbacks as callbacks
 import supybot.conf as conf
@@ -74,10 +75,39 @@ class Jira(callbacks.Plugin):
             return
         recentDate = issue.fields.created
         splitdate = recentDate.split('T')
-        replytext = ("{0}: {1}, reported by {2} at {3}. Status: {4}.".format(
-            issue.key, issue.fields.summary, issue.fields.creator, splitdate[0], issue.fields.status))
+        replytext = ("\x1F\x02\x034{0}\x0F\x03 \x02\x036[{1}] \x03\"{2}\" \x0Freported by \x02\x033{3}\x03\x0F at \x02{4}\x0F. Status: \x1F\x02{5}\x0F.".format(
+            issue.key, issue.fields.issuetype, issue.fields.summary.strip(), issue.fields.creator, splitdate[0], issue.fields.status))
         irc.reply(replytext, prefixNick=False)
     getissue = wrap(getissue, ['text'])
+
+    def doPrivmsg(self, irc, msg):
+        if callbacks.addressed(irc, msg):
+            return
+        """
+        log.error(msg.channel)
+        log.error(msg.nick)
+        log.error(msg.args[1])
+        log.error(self.registryValue('snarfRegex'))
+        log.error(re.search(self.registryValue('snarfRegex'), msg.args[1]))
+        """
+        x = re.search(self.registryValue('snarfRegex'), msg.args[1])
+        if x:
+            jira = JIRA(self.server)
+            try:
+                issue = jira.issue(x.group(0))
+                recentDate = issue.fields.created
+                splitdate = recentDate.split('T')
+                replytext = ("\x1F\x02\x034{0}\x0F\x03 \x02\x036[{1}] \x03\"{2}\" \x0Freported by \x02\x033{3}\x03\x0F at \x02{4}\x0F. Status: \x1F\x02{5}\x0F.".format(
+                    issue.key, issue.fields.issuetype, issue.fields.summary.strip(), issue.fields.creator, splitdate[0], issue.fields.status))
+                # .strip() to get rid of accidential added leading or trailing whitespaces in issue summary
+                irc.reply(replytext, prefixNick=False)
+            except:
+                replytext = ("Either invalid or unknown issue.")
+                irc.reply(replytext, prefixNick=False)
+                return
+
+        else:
+            log.error("nix erkannt")
 
     def recent(self, irc, msg, args):
         """Fetch the most recent issue"""
@@ -85,10 +115,9 @@ class Jira(callbacks.Plugin):
         for issue in jira.search_issues('project=Armbian order by created',  maxResults=1):
             recentDate = issue.fields.created
             splitdate = recentDate.split('T')
-            replytext = ("{0}: {1}, reported by {2} at {3}. Status: {4}.".format(
-                issue.key, issue.fields.summary, issue.fields.creator, splitdate[0], issue.fields.status))
+            replytext = ("\x1F\x02\x034{0}\x0F\x03 \x02\x036[{1}] \x03\"{2}\" \x0Freported by \x02\x033{3}\x03\x0F at \x02{4}\x0F. Status: \x1F\x02{5}\x0F.".format(
+                issue.key, issue.fields.issuetype, issue.fields.summary.strip(), issue.fields.creator, splitdate[0], issue.fields.status))
             irc.reply(replytext, prefixNick=False)
-        log.debug("test")
     recent = wrap(recent)
 
     def recentonly(self, irc, msg, args):
