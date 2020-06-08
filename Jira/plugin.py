@@ -79,21 +79,42 @@ class Jira(callbacks.Plugin):
             myEventCaller, self.checkTime, 'recent')
         self.irc = irc
 
-    def getissue(self, irc, msg, args, text):
-        """Get a Jira Issue"""
+    def searchissue(self, irc, msg, args):
+        """Search for JIRA issues by keyword/s in issue summary. Outputs up to three results."""
         jira = JIRA(self.server)
-        try:
-            issue = jira.issue(text)
-        except:
-            replytext = ("Either invalid or unknown issue.")
+        if len(args) == 0:
+            replytext = (
+                "Search for JIRA issues by keyword/s. Outputs up to three results. Example: \x02searchissue Allwinner H6 sound")
             irc.reply(replytext, prefixNick=False)
             return
-        recentDate = issue.fields.created
-        splitdate = recentDate.split('T')
-        replytext = ("\x1F\x02\x034{0}\x0F\x03 \x02\x036[{1}] \x03\"{2}\" \x0Freported by \x02\x033{3}\x03\x0F at \x02{4}\x0F. Status: \x1F\x02{5}\x0F.".format(
-            issue.key, issue.fields.issuetype, issue.fields.summary.strip(), issue.fields.creator, splitdate[0], issue.fields.status))
+
+        # construct search string for JIRA API
+        searchstring = "project=Armbian "
+        for arg in args:
+            searchstring += " AND summary ~ " + arg
+        searchstring += " order by created"
+
+        resultlist = []
+        for issue in jira.search_issues(searchstring, maxResults=3):
+            recentDate = issue.fields.created
+            splitdate = recentDate.split('T')
+            resultlist.append([issue.key, issue.fields.issuetype, issue.fields.summary.strip(
+            ), issue.fields.creator, splitdate[0], issue.fields.status])
+        if len(resultlist) == 0:
+            replytext = ("\x02Nothing found.")
+            irc.reply(replytext, prefixNick=False)
+        else:
+            for issue in resultlist:
+                replytext = ("\x1F\x02\x034{0}\x0F\x03 \x02\x036[{1}] \x03\"{2}\" \x0Freported by \x02\x033{3}\x03\x0F at \x02{4}\x0F. Status: \x1F\x02{5}\x0F".format(
+                    issue[0], issue[1], issue[2], issue[3], issue[4], issue[5]))
+                irc.reply(replytext, prefixNick=False)
+    #searchissue = wrap(searchissue, ['text'])
+
+    def argtest(self, irc, msg, args):
+        """uiahfeiuawief"""
+        replytext = (args)
         irc.reply(replytext, prefixNick=False)
-    getissue = wrap(getissue, ['text'])
+    #argtest = wrap(argtest)
 
     def doPrivmsg(self, irc, msg):
         if callbacks.addressed(irc, msg):
@@ -112,7 +133,7 @@ class Jira(callbacks.Plugin):
                 issue = jira.issue(x.group(0))
                 recentDate = issue.fields.created
                 splitdate = recentDate.split('T')
-                replytext = ("\x1F\x02\x034{0}\x0F\x03 \x02\x036[{1}] \x03\"{2}\" \x0Freported by \x02\x033{3}\x03\x0F at \x02{4}\x0F. Status: \x1F\x02{5}\x0F.".format(
+                replytext = ("\x1F\x02\x034{0}\x0F\x03 \x02\x036[{1}] \x03\"{2}\" \x0Freported by \x02\x033{3}\x03\x0F at \x02{4}\x0F. Status: \x1F\x02{5}\x0F".format(
                     issue.key, issue.fields.issuetype, issue.fields.summary.strip(), issue.fields.creator, splitdate[0], issue.fields.status))
                 # .strip() to get rid of accidential added leading or trailing whitespaces in issue summary
                 irc.reply(replytext, prefixNick=False)
@@ -128,19 +149,21 @@ class Jira(callbacks.Plugin):
         for issue in jira.search_issues('project=Armbian order by created',  maxResults=1):
             recentDate = issue.fields.created
             splitdate = recentDate.split('T')
-            replytext = ("\x1F\x02\x034{0}\x0F\x03 \x02\x036[{1}] \x03\"{2}\" \x0Freported by \x02\x033{3}\x03\x0F at \x02{4}\x0F. Status: \x1F\x02{5}\x0F.".format(
+            replytext = ("\x1F\x02\x034{0}\x0F\x03 \x02\x036[{1}] \x03\"{2}\" \x0Freported by \x02\x033{3}\x03\x0F at \x02{4}\x0F. Status: \x1F\x02{5}\x0F".format(
                 issue.key, issue.fields.issuetype, issue.fields.summary.strip(), issue.fields.creator, splitdate[0], issue.fields.status))
             irc.reply(replytext, prefixNick=False)
     recent = wrap(recent)
 
     def recentOnly(self, irc):
-        """Fetch the most recent issue"""
+        """Fetch the most recent issue
+        Not a real command, just used for scheduled recurring search"""
         jira = JIRA(self.server)
 
         # There must be a more decent way to read the file that consist of one line only and
         # to get rid of the file at all and keep that in memory.
+
         script_dir = os.path.dirname(__file__)
-        rel_path = "data/tmp/issue.txt"
+        rel_path = "issue.txt"
         abs_file_path = os.path.join(script_dir, rel_path)
 
         try:
@@ -158,11 +181,11 @@ class Jira(callbacks.Plugin):
             if issue.key != lastknownissue:
                 recentDate = issue.fields.created
                 splitdate = recentDate.split('T')
-                replytext = ("\x1F\x02\x034{0}\x0F\x03 \x02\x036[{1}] \x03\"{2}\" \x0Freported by \x02\x033{3}\x03\x0F at \x02{4}\x0F. Status: \x1F\x02{5}\x0F.".format(
+                replytext = ("\x1F\x02\x034{0}\x0F\x03 \x02\x036[{1}] \x03\"{2}\" \x0Freported by \x02\x033{3}\x03\x0F at \x02{4}\x0F. Status: \x1F\x02{5}\x0F".format(
                     issue.key, issue.fields.issuetype, issue.fields.summary.strip(), issue.fields.creator, splitdate[0], issue.fields.status))
                 # irc.reply(replytext, prefixNick=False) # shall not be used in schedule events
-                # move channel to config
-                irc.queueMsg(ircmsgs.privmsg("#armbian-test", replytext))
+                irc.queueMsg(ircmsgs.privmsg(
+                    self.registryValue('channel'), replytext))
                 with open(abs_file_path, "w+", encoding="utf-8") as file:
                     file.write(issue.key)
 
@@ -172,5 +195,3 @@ class Jira(callbacks.Plugin):
 
 
 Class = Jira
-
-# vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
