@@ -51,12 +51,17 @@ def configure(advanced):
     lookup = yn(
         """Do you want to lookup Jira issues once they appear on a channel?""", default=True)
     snarfRegex = something("""What is the prefix for your Jira issue keys?""",
-                           default="JRA")
+                           default="AR")
     snarfRegex = ''.join((snarfRegex, '-[0-9]+'))
+    snarfChannel = something(
+        """What channel you'd like to snarf for issues?""", default="#armbian")
+    channel = something("""Where to send anouncements for new issues to?""")
 
     Jira.server.setValue(server)
     Jira.lookup.setValue(lookup)
     Jira.snarfRegex.setValue(snarfRegex)
+    Jira.channel.setValue(channel)
+    Jira.snarfChannel.setValue(snarfChannel)
 
 
 Jira = conf.registerPlugin('Jira')
@@ -67,5 +72,8 @@ conf.registerChannelValue(Jira, 'lookup',
                           registry.Boolean(True, _("""Lookup Jira issues and print on the channel.""")))
 conf.registerGlobalValue(Jira, 'snarfRegex',
                          registry.String('JRA-[0-9]+', _("""Regex for Jira ticket ID snarfing.""")))
-
+conf.registerGlobalValue(Jira, 'channel',
+                         registry.String('#a-channel', _("""Channel to send anouncements to.""")))
+conf.registerGlobalValue(Jira, 'snarfChannel',
+                         registry.String('#another-channel', _("""Channel to snarf regex from.""")))
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
