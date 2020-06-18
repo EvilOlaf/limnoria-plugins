@@ -188,7 +188,7 @@ class Jira(callbacks.Plugin):
                     file.write(issue.key)
 
             else:
-                log.info(
+                log.debug(
                     "Recurring new issue search successful. No new issue found.")
 
 
