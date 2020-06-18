@@ -25,10 +25,13 @@ supybot.plugins.Jira.snarfRegex        = The regular expression used for snarfin
                                          (ex: "(?:(?<=\\s)|^)[A-Z]+-[0-9]+(?:(?=[\\s.?!,])|$) - Capital letters dash numbers")
 
 supybot.plugins.Jira.channel            = Target channel where the bot should announce newly created issues
+
+supybot.plugins.Jira.snarfChannel       = Target channel where the bot is allowed to snarf Jira issues
+
 ```
 
 ## Usage
 
 Create a folder named `Jira` in your plugins folder and put the contents there.
 Load the plugin.
-May throw errors at beginning if not configured properl.y
+May throw errors at beginning if not configured properly.
