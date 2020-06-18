@@ -58,7 +58,7 @@ except:
 class Jira(callbacks.Plugin):
     """This plugin communicates with Jira. It will automatically snarf
     Jira ticket numbers, and reply with some basic information
-    about the ticket. It can also close and comment on Jira tasks."""
+    about the ticket."""
     threaded = True
 
     def __init__(self, irc):
