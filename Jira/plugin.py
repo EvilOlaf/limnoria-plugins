@@ -110,15 +110,13 @@ class Jira(callbacks.Plugin):
                 irc.reply(replytext, prefixNick=False)
     #searchissue = wrap(searchissue, ['text'])
 
-    def argtest(self, irc, msg, args):
-        """uiahfeiuawief"""
-        replytext = (args)
-        irc.reply(replytext, prefixNick=False)
-    #argtest = wrap(argtest)
-
     def doPrivmsg(self, irc, msg):
         if callbacks.addressed(irc, msg):
             return
+        snarfChannel = self.registryValue('snarfChannel')
+        if not msg.channel == snarfChannel:
+            return
+
         """
         log.error(msg.channel)
         log.error(msg.nick)
