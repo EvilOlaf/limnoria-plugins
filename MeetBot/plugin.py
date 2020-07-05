@@ -169,7 +169,7 @@ class MeetBot(callbacks.Plugin):
         numSaved = 0
         for M in meeting_cache.items():
             M.config.save()
-        irc.reply("Saved %d meetings." % numSaved)
+        irc.reply("Saved {0} meetings.".format(numSaved))
     savemeetings = wrap(savemeetings, ['admin'])
 
     def addchair(self, irc, msg, args, channel, network, nick):
@@ -179,11 +179,12 @@ class MeetBot(callbacks.Plugin):
         Mkey = (channel, network)
         M = meeting_cache.get(Mkey, None)
         if not M:
-            irc.reply("Meeting on channel %s, network %s not found" % (
+            irc.reply("Meeting on channel {0}, network {1} not found".format(
                 channel, network))
             return
         M.chairs.setdefault(nick, True)
-        irc.reply("Chair added: %s on (%s, %s)." % (nick, channel, network))
+        irc.reply("Chair added: {0} on ({1}, {2}).".format(
+            nick, channel, network))
     addchair = wrap(addchair, ['admin', "channel", "something", "nick"])
 
     def deletemeeting(self, irc, msg, args, channel, network, save):
@@ -193,7 +194,7 @@ class MeetBot(callbacks.Plugin):
         meeting first, defaults to saving."""
         Mkey = (channel, network)
         if Mkey not in meeting_cache:
-            irc.reply("Meeting on channel %s, network %s not found" % (
+            irc.reply("Meeting on channel {0}, network {1} not found".format(
                 channel, network))
             return
         if save:
@@ -202,7 +203,7 @@ class MeetBot(callbacks.Plugin):
             M.endtime = time.localtime()
             M.config.save()
         del meeting_cache[Mkey]
-        irc.reply("Deleted: meeting on (%s, %s)." % (channel, network))
+        irc.reply("Deleted: meeting on ({0}, {1}).".format(channel, network))
     deletemeeting = wrap(
         deletemeeting, ['admin', "channel", "something",
                         optional("boolean", True)]
@@ -220,7 +221,8 @@ class MeetBot(callbacks.Plugin):
                 state = ", running"
             else:
                 state = ""
-            reply.append("(%s, %s, %s%s)" % (channel, network, ctime, state))
+            reply.append("({0}, {1}, {2}{3})".format(
+                channel, network, ctime, state))
         if reply:
             irc.reply(" ".join(reply))
         else:
@@ -256,7 +258,7 @@ class MeetBot(callbacks.Plugin):
         # ping all nicks in lines of about 256
         nickline = ''
         nicks = sorted(irc.state.channels[channel].users,
-                       key=lambda x: x.lower())
+                       key=lambda x: x.lower())  # Fix lambda
         for nick in nicks:
             nickline = nickline + nick + ' '
             if len(nickline) > 256:
@@ -270,6 +272,3 @@ class MeetBot(callbacks.Plugin):
 
 
 Class = MeetBot
-
-
-# vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:

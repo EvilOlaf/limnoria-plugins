@@ -1,7 +1,6 @@
-# Richard Darst, June 2009
-
 ###
 # Copyright (c) 2009, Richard Darst
+# Copyright (c) 2020, Werner
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -76,15 +75,16 @@ class _BaseItem(object):
 
     def makeRSTref(self, M):
         if self.nick[-1] == '_':
-            rstref = rstref_orig = "%s%s" % (self.nick, self.time)
+            rstref = rstref_orig = "{0}{1}".format(self.nick, self.time)
         else:
-            rstref = rstref_orig = "%s-%s" % (self.nick, self.time)
+            rstref = rstref_orig = "{0}-{1}".format(self.nick, self.time)
         count = 0
         while rstref in M.rst_refs:
             rstref = rstref_orig + inbase(count)
             count += 1
         link = self.logURL(M)
-        M.rst_urls.append(".. _%s: %s" % (rstref, link+"#"+self.anchor))
+        M.rst_urls.append(".. _{0}: {1}".format(
+            rstref, link + "#" + self.anchor))
         M.rst_refs[rstref] = True
         return rstref
 
@@ -260,7 +260,7 @@ class Link(_BaseItem):
         self.nick = nick
         self.linenum = linenum
         self.time = time.strftime("%H:%M:%S", time_)
-        self.url, self.line = (line+' ').split(' ', 1)
+        self.url, self.line = (line + ' ').split(' ', 1)
         # URL-sanitization
         self.url_readable = self.url  # readable line version
         self.url = self.url

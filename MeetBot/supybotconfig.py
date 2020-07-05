@@ -46,28 +46,29 @@ class WriterMap(registry.String):
     list of 'WriterName:.ext' pairs.  WriterName must be from the
     writers.py module, '.ext' must be a extension ending in a .
     """
+
     def set(self, s):
         s = s.split()
         writer_map = {}
         for writer in s:
             writer, ext = writer.split(':')
             if not hasattr(writers, writer):
-                raise ValueError("Writer name not found: %s" % writer)
+                raise ValueError("Writer name not found: {}".format(writer))
             writer_map[ext] = getattr(writers, writer)
         self.setValue(writer_map)
 
     def setValue(self, writer_map):
-        for e, w in writer_map.items():
+        for _, w in writer_map.items():
             if not hasattr(w, "format"):
                 raise ValueError(
-                    "Writer %s must have method .format()" % w.__name__)
+                    "Writer {} must have method .format()".format(w.__name__))
             self.value = writer_map
 
     def __str__(self):
         writers_string = []
         for ext, w in self.value.items():
             name = w.__name__
-            writers_string.append("%s:%s" % (name, ext))
+            writers_string.append("{0}:{1}".format(name, ext))
         return " ".join(writers_string)
 
 

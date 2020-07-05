@@ -207,8 +207,8 @@ class HTMLlog(_BaseWriter):
         # pygments lexing setup:
         # (pygments HTML-formatter handles HTML-escaping)
         import pygments
-        from pygments.lexers import IrcLogsLexer
-        from pygments.formatters import HtmlFormatter
+        from pygments.lexers.text import IrcLogsLexer
+        from pygments.formatters.html import HtmlFormatter
         import pygments.token as token
         from pygments.lexer import bygroups
         # Don't do any encoding in this function with pygments.
@@ -280,31 +280,31 @@ class HTMLlog2(_BaseWriter, _CSSmanager):
                 m2 = command_topic_re.match(line)
                 if m2 is not None:
                     outline = (
-                        '<span class="topic">%s</span>'
-                        '<span class="topicline">%s</span>' %
-                        (html(m2.group(1)), html(m2.group(2)))
+                        '<span class="topic">{0}</span>'
+                        '<span class="topicline">{1}</span>'.format(
+                            html(m2.group(1)), html(m2.group(2)))
                     )
                 # Match other #commands
                 if m2 is None:
                     m2 = command_re.match(line)
                     if m2 is not None:
                         outline = (
-                            '<span class="cmd">%s</span>'
-                            '<span class="cmdline">%s</span>' %
-                            (html(m2.group(1)), html(m2.group(2)))
+                            '<span class="cmd">{0}</span>'
+                            '<span class="cmdline">{1}</span>'.format(
+                                html(m2.group(1)), html(m2.group(2)))
                         )
                 # match hilights
                 if m2 is None:
                     m2 = hilight_re.match(line)
                     if m2 is not None:
                         outline = (
-                            '<span class="hi">%s</span>%s' %
-                            (html(m2.group(1)), html(m2.group(2)))
+                            '<span class="hi">{0}</span>{1}'.format(
+                                html(m2.group(1)), html(m2.group(2)))
                         )
                 if m2 is None:
                     outline = html(line)
                 lines.append(
-                    '<a name="l-%(lineno)s"></a>'
+                    '<a name="l-%(lineno)s"></a>'  # fix this
                     '<span class="tm">%(time)s</span>'
                     '<span class="nk">%(nick)s</span> '
                     '%(line)s' % {
@@ -336,7 +336,7 @@ class HTMLlog2(_BaseWriter, _CSSmanager):
 
         css = self.getCSS(name='log')
         return html_template % {
-            'pageTitle': "%s log" % html(M.channel),
+            'pageTitle': "{0} log".format(html(M.channel)),
             'body': "<pre>" + ("\n".join(lines)) + "</pre>",
             'headExtra': css,
         }
@@ -417,7 +417,7 @@ class HTML(_BaseWriter):
             # The hack below is needed because of pickling problems
             if m.itemtype != "ACTION":
                 continue
-            ActionItems.append("  <li>%s</li>" % html(m.line))
+            ActionItems.append("  <li>{0}</li>".format(html(m.line)))
         if len(ActionItems) == 0:
             ActionItems.append("  <li>(none)</li>")
         ActionItems = "\n".join(ActionItems)
@@ -428,16 +428,18 @@ class HTML(_BaseWriter):
             headerPrinted = False
             for m in items:
                 if not headerPrinted:
-                    ActionItemsPerson.append("  <li> %s <ol>" % html(nick))
+                    ActionItemsPerson.append(
+                        "  <li> {0} <ol>".format(html(nick)))
                     headerPrinted = True
-                ActionItemsPerson.append("    <li>%s</li>" % html(m.line))
+                ActionItemsPerson.append(
+                    "    <li>{0}</li>".format(html(m.line)))
             if headerPrinted:
                 ActionItemsPerson.append("  </ol></li>")
         # unassigned items:
         ActionItemsPerson.append("  <li><b>UNASSIGNED</b><ol>")
         numberUnassigned = 0
         for m in self.iterActionItemsUnassigned():
-            ActionItemsPerson.append("    <li>%s</li>" % html(m.line))
+            ActionItemsPerson.append("    <li>{0}</li>".format(html(m.line)))
             numberUnassigned += 1
         if numberUnassigned == 0:
             ActionItemsPerson.append("    <li>(none)</li>")
@@ -448,7 +450,8 @@ class HTML(_BaseWriter):
         PeoplePresent = []
         # sort by number of lines spoken
         for nick, count in self.iterNickCounts():
-            PeoplePresent.append('  <li>%s (%s)</li>' % (html(nick), count))
+            PeoplePresent.append(
+                '  <li>{0} ({1})</li>'.format(html(nick), count))
         PeoplePresent = "\n".join(PeoplePresent)
 
         # Actual formatting and replacement
@@ -468,6 +471,7 @@ class HTML(_BaseWriter):
 class HTML2(_BaseWriter, _CSSmanager):
     """HTML formatter without tables.
     """
+
     def meetingItems(self):
         """Return the main 'Meeting minutes' block."""
 
@@ -521,7 +525,7 @@ class HTML2(_BaseWriter, _CSSmanager):
             # The hack below is needed because of pickling problems
             if m.itemtype != "ACTION":
                 continue
-            ActionItems.append("  <li>%s</li>" % html(m.line))
+            ActionItems.append("  <li>{0}</li>".format(html(m.line)))
             numActionItems += 1
         if numActionItems == 0:
             ActionItems.append("  <li>(none)</li>")
@@ -541,9 +545,10 @@ class HTML2(_BaseWriter, _CSSmanager):
             for m in items:
                 numberAssigned += 1
                 if not headerPrinted:
-                    ActionItemsPerson.append("  <li> %s <ol>" % html(nick))
+                    ActionItemsPerson.append(
+                        "  <li> {0} <ol>".format(html(nick)))
                     headerPrinted = True
-                ActionItemsPerson.append("    <li>%s</li>" % html(m.line))
+                ActionItemsPerson.append("    <li>{0}</li>".format(m.line))
             if headerPrinted:
                 ActionItemsPerson.append("  </ol></li>")
         # unassigned items:
@@ -551,7 +556,7 @@ class HTML2(_BaseWriter, _CSSmanager):
         Unassigned.append("  <li><b>UNASSIGNED</b><ol>")
         numberUnassigned = 0
         for m in self.iterActionItemsUnassigned():
-            Unassigned.append("    <li>%s</li>" % html(m.line))
+            Unassigned.append("    <li>{0}</li>".format(html(m.line)))
             numberUnassigned += 1
         if numberUnassigned == 0:
             Unassigned.append("    <li>(none)</li>")
@@ -575,13 +580,14 @@ class HTML2(_BaseWriter, _CSSmanager):
         PeoplePresent.append('<ol>')
         # sort by number of lines spoken
         for nick, count in self.iterNickCounts():
-            PeoplePresent.append('  <li>%s (%s)</li>' % (html(nick), count))
+            PeoplePresent.append(
+                '  <li>{0} ({1})</li>'.format(html(nick), count))
         PeoplePresent.append('</ol>')
         PeoplePresent = "\n".join(PeoplePresent)
         return PeoplePresent
 
     def heading(self, name):
-        return '<h3>%s</h3>' % name
+        return '<h3>{0}</h3>'.format(name)
 
     def format(self, extension=None):
         """Write the minutes summary."""
@@ -703,12 +709,12 @@ class ReST(_BaseWriter):
             if m.itemtype != "ACTION":
                 continue
             # already escaped
-            ActionItems.append(wrapList("* %s" % rst(m.line), indent=0))
+            ActionItems.append(wrapList("* {0}".format(rst(m.line)), indent=0))
         ActionItems = "\n\n".join(ActionItems)
 
         # Action Items, by person (This could be made lots more efficient)
         ActionItemsPerson = []
-        for nick in sorted(list(M.attendees.keys()), key=lambda x: x.lower()):
+        for nick in sorted(list(M.attendees.keys()), key=lambda x: x.lower()):  # fix lambda
             headerPrinted = False
             for m in M.minutes:
                 # The hack below is needed because of pickling problems
@@ -717,9 +723,10 @@ class ReST(_BaseWriter):
                 if m.line.find(nick) == -1:
                     continue
                 if not headerPrinted:
-                    ActionItemsPerson.append("* %s" % rst(nick))
+                    ActionItemsPerson.append("* {0}".format(rst(nick)))
                     headerPrinted = True
-                ActionItemsPerson.append(wrapList("* %s" % rst(m.line), 2))
+                ActionItemsPerson.append(
+                    wrapList("* {0}".format(rst(m.line)), 2))
                 m.assigned = True
         # unassigned items:
         ActionItemsPerson.append("* **UNASSIGNED**")
@@ -729,7 +736,7 @@ class ReST(_BaseWriter):
                 continue
             if getattr(m, 'assigned', False):
                 continue
-            ActionItemsPerson.append(wrapList("* %s" % rst(m.line), 2))
+            ActionItemsPerson.append(wrapList("* {0}".format(rst(m.line)), 2))
             numberUnassigned += 1
         if numberUnassigned == 0:
             ActionItemsPerson.append("  * (none)")
@@ -739,7 +746,7 @@ class ReST(_BaseWriter):
         PeoplePresent = []
         # sort by number of lines spoken
         for nick, count in self.iterNickCounts():
-            PeoplePresent.append('* %s (%s)' % (rst(nick), count))
+            PeoplePresent.append('* {0} ({1})'.format(rst(nick), count))
         PeoplePresent = "\n\n".join(PeoplePresent)
 
         # Actual formatting and replacement
@@ -852,7 +859,8 @@ class Text(_BaseWriter):
             if m.itemtype != "ACTION":
                 continue
             # already escaped
-            ActionItems.append(wrapList("* %s" % text(m.line), indent=0))
+            ActionItems.append(
+                wrapList("* {0}".format(text(m.line)), indent=0))
         ActionItems = "\n".join(ActionItems)
 
         # Action Items, by person (This could be made lots more efficient)
@@ -866,9 +874,10 @@ class Text(_BaseWriter):
                 if m.line.find(nick) == -1:
                     continue
                 if not headerPrinted:
-                    ActionItemsPerson.append("* %s" % text(nick))
+                    ActionItemsPerson.append("* {0}".format(text(nick)))
                     headerPrinted = True
-                ActionItemsPerson.append(wrapList("* %s" % text(m.line), 2))
+                ActionItemsPerson.append(
+                    wrapList("* {0}".format(text(m.line)), 2))
                 m.assigned = True
         # unassigned items:
         ActionItemsPerson.append("* **UNASSIGNED**")
@@ -878,7 +887,7 @@ class Text(_BaseWriter):
                 continue
             if getattr(m, 'assigned', False):
                 continue
-            ActionItemsPerson.append(wrapList("* %s" % text(m.line), 2))
+            ActionItemsPerson.append(wrapList("* {0}".format(text(m.line)), 2))
             numberUnassigned += 1
         if numberUnassigned == 0:
             ActionItemsPerson.append("  * (none)")
@@ -888,7 +897,7 @@ class Text(_BaseWriter):
         PeoplePresent = []
         # sort by number of lines spoken
         for nick, count in self.iterNickCounts():
-            PeoplePresent.append('* %s (%s)' % (text(nick), count))
+            PeoplePresent.append('* {0} ({1})'.format(text(nick), count))
         PeoplePresent = "\n".join(PeoplePresent)
 
         # Actual formatting and replacement

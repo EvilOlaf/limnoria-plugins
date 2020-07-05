@@ -1,7 +1,6 @@
-# Richard Darst, May 2009
-
 ###
 # Copyright (c) 2009, Richard Darst
+# Copyright (c) 2020, Werner
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -117,7 +116,7 @@ class Config(object):
         # '.rst': writers.ReST,
         '.txt': writers.Text,
         # '.rst.html':writers.HTMLfromReST,
-        }
+    }
 
     def __init__(self, M, writeRawLog=False, safeMode=False):
         self.M = M
@@ -341,7 +340,8 @@ class MeetingCommands(object):
                 self.chairs.setdefault(chair, True)
         chairs = dict(self.chairs)  # make a copy
         chairs.setdefault(self.owner, True)
-        self.reply("Current chairs: %s" % (" ".join(sorted(chairs.keys()))))
+        self.reply("Current chairs: {0}".format(
+            " ".join(sorted(chairs.keys()))))
 
     def do_unchair(self, nick, line, **kwargs):
         """Remove a chair to the meeting (founder can not be removed)."""
@@ -353,7 +353,8 @@ class MeetingCommands(object):
                 del self.chairs[chair]
         chairs = dict(self.chairs)  # make a copy
         chairs.setdefault(self.owner, True)
-        self.reply("Current chairs: %s" % (" ".join(sorted(chairs.keys()))))
+        self.reply("Current chairs: {0}".format(
+            " ".join(sorted(chairs.keys()))))
 
     def do_undo(self, nick, **kwargs):
         """Remove the last item from the minutes."""
@@ -361,7 +362,8 @@ class MeetingCommands(object):
             return
         if len(self.minutes) == 0:
             return
-        self.reply("Removing item from minutes: %s" % str(self.minutes[-1]))
+        self.reply("Removing item from minutes: {0}".format(
+            str(self.minutes[-1])))
         del self.minutes[-1]
 
     def do_restrictlogs(self, nick, **kwargs):
@@ -370,8 +372,8 @@ class MeetingCommands(object):
             return
         self._restrictlogs = True
         self.reply(
-            "Restricting permissions on minutes: -%s on next #save" %
-            oct(Config.RestrictPerm)
+            "Restricting permissions on minutes: -{0} on next #save".format(
+                oct(Config.RestrictPerm))
         )
 
     def do_lurk(self, nick, **kwargs):
@@ -393,7 +395,8 @@ class MeetingCommands(object):
         meetingname = line.strip().lower().replace(" ", "")
         meetingname = "_".join(line.strip().lower().split())
         self._meetingname = meetingname
-        self.reply("The meeting name has been set to '%s'" % meetingname)
+        self.reply(
+            "The meeting name has been set to '{0}'".format(meetingname))
 
     # Commands for Anyone:
     def do_action(self, **kwargs):
@@ -494,7 +497,7 @@ class Meeting(MeetingCommands, object):
     def settopic(self):
         "The actual code to set the topic"
         if self._meetingTopic:
-            topic = '%s (Meeting topic: %s)' % (
+            topic = '%s (Meeting topic: {0})'.format(
                 self.currenttopic, self._meetingTopic
             )
         else:
@@ -549,11 +552,11 @@ class Meeting(MeetingCommands, object):
 
         # Handle the logging of the line
         if line[:6] == 'ACTION':
-            logline = "%s * %s %s" % (
+            logline = "{0} * {1} {2}".format(
                 time.strftime("%H:%M:%S", time_), nick, line[7:].strip()
             )
         else:
-            logline = "%s <%s> %s" % (
+            logline = "{0} <{1}> {2}".format(
                 time.strftime("%H:%M:%S", time_), nick, line.strip()
             )
         self.lines.append(logline)
@@ -649,4 +652,4 @@ if __name__ == '__main__':
                 M.addline(nick, "ACTION "+line, time_=time_)
         # M.save() # should be done by #endmeeting in the logs!
     else:
-        print('Command "%s" not found.' % sys.argv[1])
+        print('Command "{0}" not found.'.format(sys.argv[1]))

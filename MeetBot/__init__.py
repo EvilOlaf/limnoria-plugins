@@ -1,5 +1,6 @@
 ###
 # Copyright (c) 2009, Richard Darst
+# Copyright (c) 2020, Werner
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -43,6 +44,11 @@ __version__ = ""
 
 # XXX Replace this with an appropriate author or supybot.Author instance.
 __author__ = supybot.Author('Richard Darst', 'MrBeige', 'rkd@zgib.net')
+__maintainer__ = getattr(
+    supybot.authors,
+    "Werner",
+    supybot.Author("Werner", "Werner", "werner@armbian.de"),
+)
 
 # This is a dictionary mapping supybot.Author instances to lists of
 # contributions.
@@ -58,10 +64,7 @@ importlib.reload(plugin)  # In case we're being reloaded.
 # reloaded when this plugin is reloaded.  Don't forget to import them as well!
 
 if world.testing:
-    from . import test  # noqa
+    from . import test 
 
 Class = plugin.Class
 configure = config.configure
-
-
-# vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:

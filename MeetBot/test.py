@@ -77,12 +77,9 @@ class MeetBotTestCase(ChannelPluginTestCase):
                         assert re.search(
                             re.escape(groups[test[1]-1]),
                             reply
-                        ), 'line "%s" gives output "%s"' % (line, reply)
+                        ), 'line "{0}" gives output "{1}"'.format(line, reply)
                     # Just match the given pattern.
                     else:
                         assert re.search(
                             test[1], reply
-                        ), 'line "%s" gives output "%s"' % (line, reply)
-
-
-# vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
+                        ), 'line "{0}" gives output "{1}"'.format(line, reply)
