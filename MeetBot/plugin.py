@@ -28,19 +28,17 @@
 
 ###
 
-import supybot.utils as utils
-from supybot.commands import *
-import supybot.plugins as plugins
-import supybot.ircutils as ircutils
+from supybot.commands import wrap, optional
 import supybot.callbacks as callbacks
 import supybot.ircmsgs as ircmsgs
 
 import time
-import ircmeeting.meeting as meeting
-import supybotconfig
+from . import meeting
+from . import supybotconfig
+import importlib
 # Because of the way we override names, we need to reload these in order.
-meeting = reload(meeting)
-supybotconfig = reload(supybotconfig)
+meeting = importlib.reload(meeting)
+supybotconfig = importlib.reload(supybotconfig)
 
 if supybotconfig.is_supybotconfig_enabled(meeting.Config):
     supybotconfig.setup_config(meeting.Config)
@@ -49,10 +47,14 @@ if supybotconfig.is_supybotconfig_enabled(meeting.Config):
 # By doing this, we can not lose all of our meetings across plugin
 # reloads.  But, of course, you can't change the source too
 # drastically if you do that!
-try:               meeting_cache
-except NameError:  meeting_cache = {}
-try:               recent_meetings
-except NameError:  recent_meetings = [ ]
+try:
+    meeting_cache
+except NameError:
+    meeting_cache = {}
+try:
+    recent_meetings
+except NameError:
+    recent_meetings = []
 
 
 class MeetBot(callbacks.Plugin):
@@ -62,7 +64,7 @@ class MeetBot(callbacks.Plugin):
     def __init__(self, irc):
         self.__parent = super(MeetBot, self)
         self.__parent.__init__(irc)
-                        
+
     # Instead of using real supybot commands, I just listen to ALL
     # messages coming in and respond to those beginning with our
     # prefix char.  I found this helpful from a not duplicating logic
@@ -74,59 +76,53 @@ class MeetBot(callbacks.Plugin):
         nick = msg.nick
         channel = msg.args[0]
         payload = msg.args[1]
-        network = irc.msg.tags['receivedOn']
 
         # The following is for debugging.  It's excellent to get an
         # interactive interperter inside of the live bot.  use
         # code.interact instead of my souped-up version if you aren't
         # on my computer:
-        #if payload == 'interact':
+        # if payload == 'interact':
         #    from rkddp.interact import interact ; interact()
 
         # Get our Meeting object, if one exists.  Have to keep track
         # of different servers/channels.
         # (channel, network) tuple is our lookup key.
-        Mkey = (channel,network)
+        Mkey = (channel, irc.msg.tags['receivedOn'])
         M = meeting_cache.get(Mkey, None)
 
         # Start meeting if we are requested
         if payload[:13] == '#startmeeting':
             if M is not None:
-                irc.error("Can't start another meeting, one is in progress."
-                          "  Use #endmeeting first.")
-                return
-            name = payload[13:].strip()
-            if not name:
-                irc.error("A meeting name is required, e.g., "
-                          "'#startmeeting Marketing Committee'")
+                irc.error("Can't start another meeting, one is in progress.")
                 return
             # This callback is used to send data to the channel:
+
             def _setTopic(x):
                 irc.sendMsg(ircmsgs.topic(channel, x))
+
             def _sendReply(x):
                 irc.sendMsg(ircmsgs.privmsg(channel, x))
-            def _channelNicks():
-                return irc.state.channels[channel].users
+
             M = meeting.Meeting(channel=channel, owner=nick,
                                 oldtopic=irc.state.channels[channel].topic,
                                 writeRawLog=True,
-                                setTopic = _setTopic, sendReply = _sendReply,
-                                getRegistryValue = self.registryValue,
-                                safeMode=True, channelNicks=_channelNicks,
-                                network=network,
+                                setTopic=_setTopic, sendReply=_sendReply,
+                                getRegistryValue=self.registryValue,
+                                safeMode=True
                                 )
             meeting_cache[Mkey] = M
             recent_meetings.append(
-                (channel, network, time.ctime()))
+                (channel, irc.msg.tags['receivedOn'], time.ctime()))
             if len(recent_meetings) > 10:
                 del recent_meetings[0]
         # If there is no meeting going on, then we quit
-        if M is None: return
+        if M is None:
+            return
         # Add line to our meeting buffer.
         M.addline(nick, payload)
         # End meeting if requested:
         if M._meetingIsOver:
-            #M.save()  # now do_endmeeting in M calls the save functions
+            # M.save()  # now do_endmeeting in M calls the save functions
             del meeting_cache[Mkey]
 
     def outFilter(self, irc, msg):
@@ -142,14 +138,14 @@ class MeetBot(callbacks.Plugin):
                 nick = irc.nick
                 channel = msg.args[0]
                 payload = msg.args[1]
-                Mkey = (channel,irc.network)
+                Mkey = (channel, irc.network)
                 M = meeting_cache.get(Mkey, None)
                 if M is not None:
                     M.addrawline(nick, payload)
-        except:
+        except Exception:
             import traceback
-            print traceback.print_exc()
-            print "(above exception in outFilter, ignoring)"
+            print(traceback.print_exc())
+            print("(above exception in outFilter, ignoring)")
         return msg
 
     # These are admin commands, for use by the bot owner when there
@@ -159,42 +155,45 @@ class MeetBot(callbacks.Plugin):
 
         List all currently-active meetings."""
         reply = ""
-        reply = ", ".join(str(x) for x in sorted(meeting_cache.keys()) )
+        reply = ", ".join(str(x) for x in sorted(meeting_cache.keys()))
         if reply.strip() == '':
             irc.reply("No currently active meetings.")
         else:
             irc.reply(reply)
     listmeetings = wrap(listmeetings, ['admin'])
+
     def savemeetings(self, irc, msg, args):
         """
 
         Save all currently active meetings."""
         numSaved = 0
-        for M in meeting_cache.iteritems():
+        for M in meeting_cache.items():
             M.config.save()
-        irc.reply("Saved %d meetings."%numSaved)
+        irc.reply("Saved %d meetings." % numSaved)
     savemeetings = wrap(savemeetings, ['admin'])
+
     def addchair(self, irc, msg, args, channel, network, nick):
         """<channel> <network> <nick>
 
         Add a nick as a chair to the meeting."""
-        Mkey = (channel,network)
+        Mkey = (channel, network)
         M = meeting_cache.get(Mkey, None)
         if not M:
-            irc.reply("Meeting on channel %s, network %s not found"%(
+            irc.reply("Meeting on channel %s, network %s not found" % (
                 channel, network))
             return
         M.chairs.setdefault(nick, True)
-        irc.reply("Chair added: %s on (%s, %s)."%(nick, channel, network))
+        irc.reply("Chair added: %s on (%s, %s)." % (nick, channel, network))
     addchair = wrap(addchair, ['admin', "channel", "something", "nick"])
+
     def deletemeeting(self, irc, msg, args, channel, network, save):
         """<channel> <network> <saveit=True>
 
         Delete a meeting from the cache.  If save is given, save the
         meeting first, defaults to saving."""
-        Mkey = (channel,network)
+        Mkey = (channel, network)
         if Mkey not in meeting_cache:
-            irc.reply("Meeting on channel %s, network %s not found"%(
+            irc.reply("Meeting on channel %s, network %s not found" % (
                 channel, network))
             return
         if save:
@@ -203,9 +202,12 @@ class MeetBot(callbacks.Plugin):
             M.endtime = time.localtime()
             M.config.save()
         del meeting_cache[Mkey]
-        irc.reply("Deleted: meeting on (%s, %s)."%(channel, network))
-    deletemeeting = wrap(deletemeeting, ['admin', "channel", "something",
-                               optional("boolean", True)])
+        irc.reply("Deleted: meeting on (%s, %s)." % (channel, network))
+    deletemeeting = wrap(
+        deletemeeting, ['admin', "channel", "something",
+                        optional("boolean", True)]
+    )
+
     def recent(self, irc, msg, args):
         """
 
@@ -213,10 +215,12 @@ class MeetBot(callbacks.Plugin):
         """
         reply = []
         for channel, network, ctime in recent_meetings:
-            Mkey = (channel,network)
-            if Mkey in meeting_cache:   state = ", running"
-            else:                       state = ""
-            reply.append("(%s, %s, %s%s)"%(channel, network, ctime, state))
+            Mkey = (channel, network)
+            if Mkey in meeting_cache:
+                state = ", running"
+            else:
+                state = ""
+            reply.append("(%s, %s, %s%s)" % (channel, network, ctime, state))
         if reply:
             irc.reply(" ".join(reply))
         else:
@@ -233,7 +237,6 @@ class MeetBot(callbacks.Plugin):
         """
         nick = msg.nick
         channel = msg.args[0]
-        payload = msg.args[1]
 
         # We require a message to go out with the ping, we don't want
         # to waste people's time:
@@ -241,7 +244,11 @@ class MeetBot(callbacks.Plugin):
             irc.reply("Not joined to any channel.")
             return
         if message is None:
-            irc.reply("You must supply a description with the `pingall` command.  We don't want to go wasting people's times looking for why they are pinged.")
+            irc.reply(
+                "You must supply a description with the `pingall` command.  "
+                "We don't want to go wasting people's times looking for why "
+                "they are pinged."
+            )
             return
 
         # Send announcement message
@@ -261,46 +268,6 @@ class MeetBot(callbacks.Plugin):
 
     pingall = wrap(pingall, [optional('text', None)])
 
-    def __getattr__(self, name):
-        """Proxy between proper supybot commands and # MeetBot commands.
-
-        This allows you to use MeetBot: <command> <line of the command>
-        instead of the typical #command version.  However, it's disabled
-        by default as there are some possible unresolved issues with it.
-
-        To enable this, you must comment out a line in the main code.
-        It may be enabled in a future version.
-        """
-        # First, proxy to our parent classes (__parent__ set in __init__)
-        try:
-            return self.__parent.__getattr__(name)
-        except AttributeError:
-            pass
-        # Disabled for now.  Uncomment this if you want to use this.
-        raise AttributeError
-
-        if not hasattr(meeting.Meeting, "do_"+name):
-            raise AttributeError
-
-        def wrapped_function(self, irc, msg, args, message):
-            channel = msg.args[0]
-            payload = msg.args[1]
-
-            #from fitz import interactnow ; reload(interactnow)
-
-            #print type(payload)
-            payload = "#%s %s"%(name,message)
-            #print payload
-            import copy
-            msg = copy.copy(msg)
-            msg.args = (channel, payload)
-
-            self.doPrivmsg(irc, msg)
-        # Give it the signature we need to be a callable supybot
-        # command (it does check more than I'd like).  Heavy Wizardry.
-        instancemethod = type(self.__getattr__)
-        wrapped_function = wrap(wrapped_function, [optional('text', '')])
-        return instancemethod(wrapped_function, self, MeetBot)
 
 Class = MeetBot
 

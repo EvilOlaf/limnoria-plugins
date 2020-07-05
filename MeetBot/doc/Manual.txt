@@ -31,7 +31,7 @@ contributions is generally a good thing.::
              is MrBeige.
   < MeetBot> Information about MeetBot at
              http://wiki.debian.org/MeetBot , Useful Commands: #action
-             #agreed #help #info #idea #link #topic.
+             #agreed #halp #info #idea #link #topic.
 
 MeetBot gives us a little bit of information about the meeting.::
 
@@ -108,7 +108,7 @@ can look at the `logs`_ and `minutes`_ online.
 
 
 
-User reference
+User Reference
 ==============
 
 Commands
@@ -169,24 +169,26 @@ adjust and have MeetBot re-process the logs later.
                release.
 
 #link
-
-  Add a link to the minutes.  The URL will be properly detected within
-  the line in most cases - the URL can't contain spaces.  This command
-  is automatically detected if the line starts with http:, https:,
-  mailto:, and some other common protocols defined in the
-  ``UrlProtocols`` configuration variable.  Examples::
+  Add a link to the minutes.  The URL must be the first thing on the
+  line, separated by a space from the rest of the line, and it will be
+  properly hyperlinked.  This command is automatically detected if the line
+  starts with http:, https:, mailto:, and some other common protocols
+  defined in the ``UrlProtocols`` configuration variable.  Examples::
 
     < MrBeige> #link http://wiki.debian.org/MeetBot/ is the main page
     < MrBeige> http://wiki.debian.org/MeetBot/ is the main page
+
+  Both of these two examples are equivalent, and will hyperlink
+  properly.  The first example below won't hyperlink properly, the
+  second one won't be automatically detected::
+
     < MrBeige> #link the main page is http://wiki.debian.org/MeetBot/
-               so go there
-    < MrBeige> the main page is http://wiki.debian.org/MeetBot/ so go
-               there.  (This will NOT be detected automatically)
+    < MrBeige> the main page is http://wiki.debian.org/MeetBot/
 
 
 
 
-Less-used commands
+Less-used Commands
 ------------------
 
 #meetingtopic
@@ -279,71 +281,63 @@ Hints on how to run an effective meeting
 Administrators
 ==============
 
-Overview
---------
+Supybot Admin Commands
+----------------------
 
-Unfortunately, MeetBot seems a bit complex to configure.  In order to
-keep things straight, keep this in mind: MeetBot has two distinct
-pieces.  The first (``meeting.py`` and friends) is the meeting parser
-and note/logfile generator.  This part can run independently,
-*without* the supybot plugin.  The second part interfaces the core
-``meeting.py`` to supybot, to make it usable via IRC.
+These commands are for the bot owners to manage all meetings served by
+their bot.  The expected use of these commands is when the bot is on
+many channels as a public service, and the bot owner sometimes needs
+to be able to monitor and adjust the overall situation, even if she is
+not the chair of a meeting.
 
-When reading about how to run MeetBot, keep this in mind, and if
-something is applicable to ``meeting.py`` features, just supybot
-features, or both.
+All of these are regular supybot commands (as opposed to the commands
+above).  That means that the supybot capability system applies, and
+they can be given either in any channel, either by direct address
+(``BotName: <command> <args> ...``) or with the bot prefix character
+(e.g. ``@<commandname> <args> ...``).  If there are commands with the
+same name in multiple plugins, you need to prefix the command with the
+plugin name (for example, ``BotName: meetbot recent`` instead of
+``BotName: recent``)
 
-This design split greatly increases modularity (a "good thing"), and
-also allows the Replay functionality.  It should also allow other bot
-plugins to easily be written.
+These are restricted to anyone with the ``admin`` capability on the
+bot.
 
+``listmeetings``
+  List all meetings.
 
+``savemeetings``
+  Saves all active meetings on all channels and all networks.
 
+``addchair <channel> <network> <nick>``
+  Forcibly adds this nick as a chair on the giver channel on the given
+  network, if a meeting is active there.
 
-Replay functionality
---------------------
+``deletemeeting <channel> <network> <saveit=True>``
+  Delete a meeting from the cache.  If save is given, save the meeting
+  first.  The default value of ``save`` is True.  This is useful for
+  when MeetBot becomes broken and is unable to properly save a
+  meeting, rendering the ``#endmeeting`` command non-functional.
 
-Let's say you had a meeting which happened a while ago, and you would
-like to update the logs to a newer format.  If supybot was the only
-way to use MeetBot, you'd be out of luck.  Luckily, there is an
-independent way to replay meetings::
+``recent``
+  Display the last ten or so started meetings, along with their
+  channels.  This is useful if you are the bot admin and want to see
+  just who all is using your bot, for example to better communicate
+  with those channels.
 
-    python /path/to/meeting.py replay /path/to/old_meeting.log.txt
-
-You run the meeting.py file as a script, giving the subcommand
-``replay`` and then a path to a ``.log.txt`` file from a previous
-meeting (or from some other source of IRC logs, it's essentially the
-irssi/xchat format).  It parses it and processes the meeting, and
-outputs all of the usual ``.html``, ``.log.html``, and so on files in
-the directory parallel to the input file.
-
-This is useful if you want to upgrade your output formats, MeetBot
-broke and you lost the realtime log and want to generate a summary
-using your own logfiles, remove or change something in the logs that
-was incorrect during the meeting.  As such, this is an important
-feature of MeetBot.
-
-However, this does make configuration changes harder.  Since the
-replay function works *independent* of supybot, any configuration that
-is done in supybot will be invisible to the replay function.  Thus, we
-have to have a non-supybot mechanism of configuring MeetBot.  There
-was a supybot way of configuring MeetBot added later, which can adjust
-most variables.  However, if something is configured here, it won't be
-seen if a file is replayed.  This might be OK, or it might not be,
-depending on the variable.
+To connect to multiple IRC networks, use the supybot ``Network``
+plugin to manage them.  First, load the ``Network`` plugin, then use
+the ``connect`` command to connect to the other network.  Finally, you
+need to tell supybot to join channels on the new.  To do
+that, you can use ``network command <other_network> join <channel>``.
+(Alternatively, you can /msg the bot through the other network, but
+you'll have to register your nick to it on the other network in order
+for it to accept commands from you.)
 
 
 
 
 Configuration
 -------------
-
-meetingLocalConfig.py configuration
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-This is the non-supybot method of configuration, and allows the most
-flexibility.  **It works for configuring supybot, too**, but requires
-shell access and a MeetBot reload to change.
 
 Configuration is done by creating a file ``meetingLocalConfig.py`` in
 the plugin directory, or somewhere in your PYTHONPATH.  It works by
@@ -353,7 +347,7 @@ Here is a minimal usage example.  You need at *least* this much to
 make it run. Put this in ``meetingLocalConfig.py`` before you first
 start supybot::
 
-    class Config(object):
+    Class Config(object):
         # These two are **required**:
         logFileDir = '/home/richard/meetbot/'
         logUrlPrefix = 'http://rkd.zgib.net/meetbot/'
@@ -366,12 +360,10 @@ Two other more commonly used options are::
 Place all of the configuration variables inside of the class
 body like this.
 
-``meetingLocalConfig.py`` is imported via python, so all the usual
-benefits and caveats of that apply.  It causes a subclass of the main
-Config object.  Thus, you can do some advanced (or just crazy) things
-like add a new meeting command, meeting agenda item type, or more.
-Some of these ideas are documented under the "Advanced configuration"
-section below.
+``meetingLocalConfig.py`` is a complete execution, and causes a
+subclass of the main Config object.  Thus, you can do some advanced
+(or just crazy) things like add a new meeting command, meeting
+agenda item type, or more.  Not all of these are documented here.
 
 To reload a configuration in a running supybot, you can just reload
 the plugin in supybot --- the module is reloaded.  Specifically,
@@ -379,18 +371,13 @@ the plugin in supybot --- the module is reloaded.  Specifically,
 
 
 
-Supybot-based config
-~~~~~~~~~~~~~~~~~~~~
+Supybot-based Config
+--------------------
 
-This is the system that configures MeetBot based on the supybot
-registry system.  Thus, it can be adjusted by anyone with the proper
-supybot capabilities.  However, the configuration in the supybot
-registry *won't* be used if the ``replay`` functionality is used (see
-above).  Thus, for example, if you configure the MediaWiki writer
-using ``supybot.plugins.MeetBot.writer_map``, and then ``replay`` the
-meeting, the MediaWiki output will *not* be updated.
-
-To enable this system, first the
+In addition to the normal ``meetingLocalConfig.py`` based
+configuration, there is a mode where the supybot registry system can
+be used to set the values of some configuration variables.  To enable
+this system, first the
 ``supybot.plugins.MeetBot.enableSupybotBasedConfig`` variable must be
 set to True.  Then the MeetBot plugin must be reloaded::
 
@@ -411,15 +398,11 @@ Setting a value for a variable::
 
     /msg YourBot config supybot.plugins.MeetBot.logUrlPrefix http://meetings.yoursite.net/
 
-Most variables (those with # prepended) can be set on a per-channel
-basis (they are set up as channel-specific variables).
-
 
 At present, not all variables are exported to supybot.  All string and
 boolean variables are, as well certain other variables for which a
-wrapper has been written (``writer_map`` in particular).  If a
-variable doesn't appear in the supybot registry, it can't be set via
-the registry.
+wrapper has been written.  If a variable doesn't appear in the supybot
+registry, it can't be set via the registry.
 
 If you want to disable supybot-based config for security reasons, set
 ``dontBotConfig`` to True in your custom configuration class in
@@ -427,20 +410,20 @@ If you want to disable supybot-based config for security reasons, set
 
 
 
-Required or important configuration
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Required or Important Configuration
+-----------------------------------
 
 These variables are set either in ``meetingLocalConfig.py`` (in the
 ``Config`` class) or in the supybot registry.
 
 ``logFileDir``
-    The filesystem directory in which the meeting outputs are stored,
-    defaulting to ".".  **Required**.
+    The filesystem directory in which the meeting outputs are stored.
+    **Required** or supybot can't save properly.
 
 ``logUrlPrefix``
     The URL corresponding to ``logFileDir``.  This is prepended to
     filenames when giving end-of-meeting links in the channel.
-    **Required** or supybot's URLs will be missing.
+    **Required** or supybot's URLs will be wrong.
 
 ``filenamePattern``
     This defaults to ``'%(channel)s/%%Y/%(channel)s.%%F-%%H.%%M'``,
@@ -450,187 +433,25 @@ These variables are set either in ``meetingLocalConfig.py`` (in the
     ``logFileDir`` and ``logUrlPrefix``.
 
     Variables available for replacement using ``%(name)s`` include:
-    ``channel``, ``network``, ``meetingname``.  Double percent signs
-    (e.g.: ``%%Y`` are time formats, from ``time.strftime``.
+    ``channel``, ``meetingname``.  Double percent signs (e.g.: ``%%Y``
+    are time formats, from ``time.strftime``.
 
-    You should *not* include filename extensions here.  Those are
-    found from the writers, via the variable ``writer_map``.
+    This filename does *not* include extensions.  Those are found from
+    the writers, via the variable ``writer_map``.
 
-Putting these all together, a set of variables could be:
-  1) ``logFileDir  =  /srv/www/meetings/``
-  2) ``%(channel)s/%%Y/%(channel)s.%%F-%%H.%%M``
-  3) (``.html``, ``.txt``, etc, extensions come from ``writers_map``)
+    Putting these all together, a set of variables could be:
+      1) ``logFileDir  =  /srv/www/meetings/``
+      2) ``%(channel)s/%%Y/%(channel)s.%%F-%%H.%%M``
+      3) (extensions come from ``writers_map``)
 
 ``MeetBotInfoURL``
     This is a URL given in beginning and ending messages and minutes
     files as a "go here for more information" link.
 
 
-writer_map configuration
-~~~~~~~~~~~~~~~~~~~~~~~~
 
-``writer_map`` tells how we want to output the results of the meeting.
-It is, as you can guess, a mapping from filename extensions
-(``.html``, ``.log.html``, ...) to what we want to output to that file
-(``writers.HTML``, ``writers.HTMLlog``, ...)
-
-Using ``meetingLocalConfig.py``, it is python dictionary listing what
-output formats will be used to write our final results to a file,
-along with extensions to use.  For example, in
-``meetingLocalConfig.py``::
-
-    import writers
-
-    class Config:
-        writer_map = {
-            '.log.html':writers.HTMLlog,
-            '.html': writers.HTML,
-            '.txt': writers.RST,
-            '.mw':writers.MediaWiki,
-            }
-
-If an extension begins in ``.none`` the output will *not* be written
-to a file.  Note that you can't have the same extension multiple times
-due to the way python dictionaries work: use ``.none1``, ``.none2``,
-etc.
-
-This *can* be configured through supybot.  To do this, set
-``supybot.plugins.MeetBot.writer_map`` to a space-separated list of
-``WriterName:.extension`` pairs (note the different ordering from the
-python dictionary).  For example, to list the current setting (in
-private message with the bot)::
-
-    <MrBeige> config plugins.MeetBot.writer_map
-    <MeetBot> HTML2:.html MediaWiki:.mw HTMLlog2:.log.html Text:.txt
-
-And to set it (again, in private message with the bot)::
-
-    <MrBeige> config plugins.MeetBot.writer_map HTML2:.html MediaWiki:.mw HTMLlog2:.log.html Text:.txt
-
-There is a special way to pass arguments to writers.  Learn by
-example::
-
-    writer_map = {
-        '.mw|mwsite=http://site.net|mwpath=Meetings':writers.MediaWiki,
-    }
-
-or via supybot::
-
-    config plugins.MeetBot.writer_map MediaWiki:.mw|mwsite=http://site.net|mwpath=Meetings
-
-
-
-
-
-The available writers are (with default extensions, if enabled by
-default):
-
-``TextLog`` (``.log.txt``)
-    Plain-text logs suitable for replaying.  This does **not** have to
-    be explicitly enabled listed-- it is automatically enabled
-    whenever it is needed (currently, only when a meeting comes
-    realtime from supybot, not when being replayed)
-
-``HTMLlog`` (``.log.html``)
-    Alias for the current default HTML-pretty logs output format,
-    currently ``HTMLlog2``.
-
-``HTMLlog2``
-    Writes the logs in a HTML-pretty, CSS-customizable way (see section
-    below).
-
-``HTML`` (``.html``)
-    Alias for the current default HTML output format for the meeting
-    notes, currently ``HTML2``.
-
-``HTML2``
-    Meeting notes, in a numbered list HTML output format.
-    Configurable via CSS (see section below).
-
-``Text`` (``.txt``)
-    A meeting notes format, as a plain text file
-
-``MediaWiki``
-    MediaWiki output.
-
-    The MediaWiki writer has the
-    ability to upload to a MediaWiki site directly.  You use the
-    custom variables ``mwsite``: site name to upload to, ``mwpath``:
-    subpage to upload to (final location is
-    ``%(mwpath)/%(file_basename)), ``mwusername`` and ``mwpassword``:
-    username and password to log in as.
-
-    An upload is attempted if ``mwsite`` is given.  A login is
-    attempted if ``mwusername`` is given.  An example configuration::
-
-        writer_map = {
-            '.mw|mwsite=http://site.net|mwpath=Meetings':writers.MediaWiki,
-            }
-
-``PmWiki``
-    PmWiki output.  This doesn't upload *to* a PmWiki instance,
-    but that could be added later.
-
-``Template``
-    This writer allows a user-defined template to used to output the
-    meeting logs.  This allows complete control of the output by
-    embedding special tags into templates.  This writer depends on the
-    `Genshi templating engine`_.  For information on how the
-    templating engine works, please see its website or the example
-    templates provided.
-
-.. _`Genshi templating engine`: http://genshi.edgewall.org/
-
-    To use the templating engine, you must specify the template file
-    to use.  This is done via a special argument syntax.  Instead of
-    an file extension name, the extension should be specified as
-    ``.EXTENSION_NAME|template=TEMPLATE_FILE``, with the metavariables
-    explaining what the parts do.  For example, in
-    ``meetingLocalConfig.py`` one would do::
-
-        class Config:
-            writer_map = {
-                ...
-                '.tmpl.txt|template=+template.txt' = writers.Template,
-                }
-
-    When setting a template writer by the suybot registry, one would do::
-
-        /msg YourBot config plugins.MeetBot.writer_map <other writers> Template:.EXTENSION_NAME|template=TEMPLATE_FILE ...
-
-    ``TEMPLATE_FILE`` is an absolute or relative filename.  As a
-    special case, ``+TEMPLATE_NAME`` can be used to specify a path
-    relative to the MeetBot source directory.  This is used to include
-    the default templates: ``+template.html`` or ``+template.txt`` .
-
-
-Obsolete writers are:
-
-``HTMLlog1``
-    Old HTML writer.  This one requires the Python module ``pygments``
-    to be installed.  HTMLlog2 was written to remove this dependency.
-    HTMLlog2 is just as pretty as this is, and HTMLlog2 is
-    configurable via CSS.
-
-``HTML1``
-    Old, table-based HTML writer.
-
-``ReST``
-    ReStructured Text output.  Since ReStructured Text is a bit strict
-    in it's parser, user input from the IRC meeting will often mess up
-    the conversion, and thus this isn't recommended for true use until
-    better escape functions can be written.  (There is no security
-    risk from this plugin, ReST is run in secure mode).
-
-``HTMLfromReST``
-    This runs the ReStructured Text writer, and uses ``docutils`` to
-    convert it to HTML.  This requires the ``docutils`` package of
-    Python to be installed.
-
-
-
-Other config variables
-~~~~~~~~~~~~~~~~~~~~~~
+Other Config Variables
+----------------------
 
 These variables are set either in ``meetingLocalConfig.py`` (in the
 ``Config`` class) or in the supybot registry.
@@ -689,7 +510,16 @@ These variables are set either in ``meetingLocalConfig.py`` (in the
     Input and output character set encodings.
 
 ``writer_map``
-    See the description in the section above.
+    A python dictionary listing what output formats will be used to
+    write our final results to a file, along with extensions to use.
+    For example::
+
+        writer_map = {
+            '.log.html':writers.HTMLlog(),
+            '.html': writers.HTML(),
+            '.txt': writers.RST(),
+            #'.rst.html':writers.HTMLfromRST(),
+            }
 
 ``cssFile_minutes`` and ``cssFile_log``
 
@@ -715,8 +545,8 @@ These variables are set either in ``meetingLocalConfig.py`` (in the
 
 
 
-Advanced configuration
-~~~~~~~~~~~~~~~~~~~~~~
+Advanced Configuration
+----------------------
 
 This gives a few examples of things you can do via
 ``meetingLocalConfig.py``.  Most people probably won't need these
@@ -725,21 +555,11 @@ things, and they aren't thoroughly explained here.
 You can make a per-channel config::
 
     class Config(object):
-        def init_hook(self):
-            if self.M.channel == '#some-channel':
+        def init(self):
+	    if self.M.channel == '#some-channel':
                 self.logFileDir = '/some/directory'
             else:
                 self.logFileDir = '/some/other/directory'
-
-Make a per-channel writer_map (note that you shouldn't change
-writer_map in place)::
-
-    import writers
-    class Config(object):
-        def init_hook(self):
-            if self.M.channel == '#some-channel':
-                self.writer_map = self.writer_map.copy()
-                self.writer_map['.mw'] = writers.MediaWiki
 
 
 The display styles (in html writers) can be modified also, by using
@@ -751,11 +571,9 @@ meetingLocalConfig.py::
     items.Agreed.endhtml = '</font>'
 
 
-Adding a new custom command via ``meetingLocalConfig.py``.  (This
-likely won't make sense unless you examine the code a bit and know
-esoteric things about python method types)::
+Adding a new custom command via ``meetingLocalConfig.py``.  This
+likely won't make sense unless you examine the code a bit::
 
-    import types
     class Config(object):
         def init(self):
             def do_party(self, nick, time_, **kwargs):
@@ -771,61 +589,6 @@ Make a command alias.  Make ``#weagree`` an alias for ``#agreed``::
     class Config(object):
         def init(self):
 	    self.M.do_weagree = self.M.do_agreed
-
-
-
-
-Supybot admin commands
-----------------------
-
-These commands are for the bot owners to manage all meetings served by
-their bot.  The expected use of these commands is when the bot is on
-many channels as a public service, and the bot owner sometimes needs
-to be able to monitor and adjust the overall situation, even if she is
-not the chair of a meeting.
-
-All of these are regular supybot commands (as opposed to the commands
-above).  That means that the supybot capability system applies, and
-they can be given either in any channel, either by direct address
-(``BotName: <command> <args> ...``) or with the bot prefix character
-(e.g. ``@<commandname> <args> ...``).  If there are commands with the
-same name in multiple plugins, you need to prefix the command with the
-plugin name (for example, ``BotName: meetbot recent`` instead of
-``BotName: recent``)
-
-These are restricted to anyone with the ``admin`` capability on the
-bot.
-
-``listmeetings``
-  List all meetings.
-
-``savemeetings``
-  Saves all active meetings on all channels and all networks.
-
-``addchair <channel> <network> <nick>``
-  Forcibly adds this nick as a chair on the giver channel on the given
-  network, if a meeting is active there.
-
-``deletemeeting <channel> <network> <saveit=True>``
-  Delete a meeting from the cache.  If save is given, save the meeting
-  first.  The default value of ``save`` is True.  This is useful for
-  when MeetBot becomes broken and is unable to properly save a
-  meeting, rendering the ``#endmeeting`` command non-functional.
-
-``recent``
-  Display the last ten or so started meetings, along with their
-  channels.  This is useful if you are the bot admin and want to see
-  just who all is using your bot, for example to better communicate
-  with those channels.
-
-To connect to multiple IRC networks, use the supybot ``Network``
-plugin to manage them.  First, load the ``Network`` plugin, then use
-the ``connect`` command to connect to the other network.  Finally, you
-need to tell supybot to join channels on the new.  To do
-that, you can use ``network command <other_network> join <channel>``.
-(Alternatively, you can /msg the bot through the other network, but
-you'll have to register your nick to it on the other network in order
-for it to accept commands from you.)
 
 
 
@@ -872,7 +635,7 @@ with the meeting and send lines to the ``Meeting`` object are in
 would be the place to start.
 
 
-Source control
+Source Control
 --------------
 
 To get a copy of the repo, the first time, use the **get** command::
@@ -920,7 +683,7 @@ repository.
 
 
 
-Help and support
+Help and Support
 ================
 
 The channel ``#meetbot`` on *irc.oftc.net* is the best place to go.
