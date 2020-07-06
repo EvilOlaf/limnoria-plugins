@@ -497,7 +497,7 @@ class Meeting(MeetingCommands, object):
     def settopic(self):
         "The actual code to set the topic"
         if self._meetingTopic:
-            topic = '%s (Meeting topic: {0})'.format(
+            topic = '{0} (Meeting topic: {1})'.format(
                 self.currenttopic, self._meetingTopic
             )
         else:
